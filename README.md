@@ -2,6 +2,15 @@
 
 A SoundCloud source plugin for [Lavalink](https://github.com/lavalink-devs/Lavalink) built on [lavaplayer](https://github.com/lavalink-devs/lavaplayer).
 
+## Format support
+
+SoundCloud dropped progressive streams and the legacy HLS `audio/mpegurl`
+transcoding (its resolver now returns 404). soundy plays the only format
+SoundCloud still serves — fragmented-MP4 HLS (`audio/mp4`, AAC) — by streaming
+the `EXT-X-MAP` init segment and all media segments through lavaplayer's
+fragmented MP4 demuxer. Seeking within a track is currently not supported
+(the playlists carry no seek index).
+
 ## Table of Contents
 
 - [Plugin](#plugin)
@@ -18,7 +27,7 @@ Drop the jar into your Lavalink `plugins/` folder.
 ```
 lavalink/
 └── plugins/
-    └── soundy-plugin-1.0.0.jar
+    └── soundy-plugin-1.1.0.jar
 ```
 
 Then declare it in your `application.yml`:
@@ -26,7 +35,7 @@ Then declare it in your `application.yml`:
 ```yaml
 lavalink:
   plugins:
-    - dependency: "com.waris4ly.soundy:plugin:1.0.0"
+    - dependency: "com.waris4ly.soundy:plugin:1.1.0"
       repository: "https://maven.lavalink.dev/releases"
 ```
 
@@ -50,7 +59,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.waris4ly.soundy:common:1.0.0")
+    implementation("com.waris4ly.soundy:common:1.1.0")
 }
 ```
 
@@ -115,5 +124,5 @@ https://soundcloud.com/someuser/sets/some-playlist
 Output:
 
 ```
-plugin/build/libs/soundy-plugin-1.0.0.jar
+plugin/build/libs/soundy-plugin-1.1.0.jar
 ```

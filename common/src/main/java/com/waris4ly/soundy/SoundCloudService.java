@@ -54,29 +54,45 @@ public class SoundCloudService {
         }
 
         String progressiveUrl = null;
-        String hlsUrl = null;
+        String hlsFmp4SqUrl = null;
+        String hlsFmp4LqUrl = null;
 
         for (JsonBrowser t : transcodings.values()) {
             if (t.get("snipped").asBoolean(false)) continue;
 
             String protocol = t.get("format").get("protocol").text();
             String mime = t.get("format").get("mime_type").text();
+            String quality = t.get("quality").text();
             String url = t.get("url").text();
 
             if ("progressive".equals(protocol) && mime != null && mime.contains("mpeg")) {
                 progressiveUrl = url;
                 break;
             }
-            if ("hls".equals(protocol) && mime != null && mime.contains("mpeg") && hlsUrl == null) {
-                hlsUrl = url;
+
+            // SoundCloud no longer serves progressive streams, and the legacy HLS
+            // audio/mpegurl transcoding resolver answers HTTP 404. The only working
+            // format is fragmented-MP4 HLS (audio/mp4, codecs=mp4a.40.2).
+            if ("hls".equals(protocol) && mime != null && mime.startsWith("audio/mp4")) {
+                if ("sq".equals(quality) && hlsFmp4SqUrl == null) {
+                    hlsFmp4SqUrl = url;
+                } else if (hlsFmp4LqUrl == null) {
+                    hlsFmp4LqUrl = url;
+                }
             }
         }
 
         if (progressiveUrl != null) {
-            return new StreamData(resolveStreamUrl(http, progressiveUrl), StreamData.Protocol.PROGRESSIVE);
+            return new StreamData(resolveStreamUrl(http, progressiveUrl),
+                    StreamData.Protocol.PROGRESSIVE, "audio/mpeg");
         }
-        if (hlsUrl != null) {
-            return new StreamData(resolveStreamUrl(http, hlsUrl), StreamData.Protocol.HLS);
+        if (hlsFmp4SqUrl != null) {
+            return new StreamData(resolveStreamUrl(http, hlsFmp4SqUrl),
+                    StreamData.Protocol.HLS_FMP4, "audio/mp4");
+        }
+        if (hlsFmp4LqUrl != null) {
+            return new StreamData(resolveStreamUrl(http, hlsFmp4LqUrl),
+                    StreamData.Protocol.HLS_FMP4, "audio/mp4");
         }
 
         throw new IOException("No playable stream found for track: " + trackId);

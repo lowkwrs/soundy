@@ -1,0 +1,13 @@
+#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-MAP:URI="https://playback.example.cloud/aac_160k/abc/init.mp4?expires=1792333911&Policy=fake"
+#EXTINF:10.007800,
+https://playback.example.cloud/aac_160k/abc/data000.m4s?expires=1792333911&Policy=fake
+#EXTINF:9.984580,
+https://playback.example.cloud/aac_160k/abc/data001.m4s?expires=1792333911&Policy=fake
+#EXTINF:1.407800,
+data002.m4s?expires=1792333911&Policy=fake
+#ENDLIST

@@ -108,14 +108,15 @@ public class SoundySourceManager implements AudioSourceManager {
         }
     }
 
-    private SoundyAudioTrack buildTrack(TrackData data) {
+    private AudioTrack buildTrack(TrackData data) {
         SoundyAudioTrackInfo info = new SoundyAudioTrackInfo(
                 data.getTitle(),
                 data.getUsername(),
                 data.getDuration(),
                 String.valueOf(data.getId()),
                 data.getPermalinkUrl(),
-                data.getId()
+                data.getId(),
+                data.getArtworkUrl()
         );
         return new SoundyAudioTrack(info, this);
     }
@@ -135,7 +136,8 @@ public class SoundySourceManager implements AudioSourceManager {
     public AudioTrack decodeTrack(AudioTrackInfo info, DataInput input) throws IOException {
         long trackId = input.readLong();
         SoundyAudioTrackInfo soundyInfo = new SoundyAudioTrackInfo(
-                info.title, info.author, info.length, info.identifier, info.uri, trackId);
+                info.title, info.author, info.length, info.identifier, info.uri,
+                trackId, info.artworkUrl);
         return new SoundyAudioTrack(soundyInfo, this);
     }
 

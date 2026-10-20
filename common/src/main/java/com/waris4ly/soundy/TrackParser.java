@@ -17,8 +17,18 @@ public class TrackParser {
         boolean isPreview = "SNIPPED".equalsIgnoreCase(policy);
 
         return new TrackData(id, title, permalinkUrl, duration,
-                artworkUrl != null ? artworkUrl : "",
+                upgradeArtwork(artworkUrl),
                 username != null ? username : "Unknown",
                 streamable && !isPreview);
+    }
+
+    /**
+     * The API hands out the 100x100 -large artwork; prefer the 500x500 variant.
+     */
+    private static String upgradeArtwork(String artworkUrl) {
+        if (artworkUrl == null || artworkUrl.isEmpty()) {
+            return "";
+        }
+        return artworkUrl.replace("-large.jpg", "-t500x500.jpg");
     }
 }

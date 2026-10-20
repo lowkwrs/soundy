@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":common"))
     compileOnly("dev.arbjerg:lavaplayer:2.2.6")
     compileOnly("dev.arbjerg.lavalink:plugin-api:4.2.2")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
 
 tasks.jar {
