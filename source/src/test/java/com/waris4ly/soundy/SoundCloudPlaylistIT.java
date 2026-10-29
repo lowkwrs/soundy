@@ -54,7 +54,8 @@ class SoundCloudPlaylistIT {
 		assertNotNull(playlist.getName(), "playlist should have a name");
 		assertFalse(playlist.getTracks().isEmpty(), "playlist should contain tracks");
 
-		assertEquals(145, playlist.getTracks().size());
+		// 4 of the 145 entries are 30-second previews (policy SNIP)
+		assertEquals(141, playlist.getTracks().size());
 
 		manager.shutdown();
 	}
