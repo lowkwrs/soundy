@@ -55,7 +55,7 @@ configure(subprojects.filter { it.name != "plugin" }) {
         repositories {
             maven {
                 name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/waris4ly/soundy-plugin")
+                url = uri("https://maven.pkg.github.com/" + (System.getenv("GITHUB_REPOSITORY") ?: "lowkwrs/soundy-plugin"))
                 credentials {
                     username = System.getenv("GITHUB_ACTOR")
                     password = System.getenv("GITHUB_TOKEN")
