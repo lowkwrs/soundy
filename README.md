@@ -82,7 +82,7 @@ lavalink:
 
 </details>
 
-Alternatively, download the `soundy-plugin-x.x.x.jar` from the [Releases](https://github.com/lowkwrs/soundy-plugin/releases) page and place it into your `plugins` directory:
+Alternatively, download the `soundy-plugin-x.x.x.jar` from the [Releases](https://github.com/waris4ly/soundy-plugin/releases) page and place it into your `plugins` directory:
 
 ```
 lavalink/
