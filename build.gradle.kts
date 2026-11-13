@@ -69,6 +69,17 @@ configure(subprojects.filter { it.name != "plugin" }) {
                 groupId = "com.waris4ly.soundy"
                 artifactId = project.name
                 version = project.version.toString()
+
+                pom {
+                    name.set(project.name)
+                    description.set("SoundCloud source manager for Lavaplayer")
+                    url.set("https://github.com/waris4ly/soundy-plugin")
+                    scm {
+                        connection.set("scm:git:git://github.com/waris4ly/soundy-plugin.git")
+                        developerConnection.set("scm:git:ssh://github.com:waris4ly/soundy-plugin.git")
+                        url.set("https://github.com/waris4ly/soundy-plugin")
+                    }
+                }
             }
         }
     }
