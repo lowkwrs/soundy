@@ -1,128 +1,141 @@
-# soundy
+# soundy-plugin
+A SoundCloud source manager for Lavaplayer and Lavalink.
 
-A SoundCloud source plugin for [Lavalink](https://github.com/lavalink-devs/Lavalink) built on [lavaplayer](https://github.com/lavalink-devs/lavaplayer).
-
-## Format support
-
-SoundCloud dropped progressive streams and the legacy HLS `audio/mpegurl`
-transcoding (its resolver now returns 404). soundy plays the only format
-SoundCloud still serves — fragmented-MP4 HLS (`audio/mp4`, AAC) — by streaming
-the `EXT-X-MAP` init segment and all media segments through lavaplayer's
-fragmented MP4 demuxer. Seeking within a track is currently not supported
-(the playlists carry no seek index).
+SoundCloud dropped their old progressive MP3 streams and switched entirely to fragmented MP4 (AAC) HLS. This source adds proper support for those streams so playback, seeking, and playlists work without issues.
 
 ## Table of Contents
-
-- [Plugin](#plugin)
 - [Common](#common)
+  - Information about the `common` module and usage.
+- [Source](#source)
+  - Information about the `source` module and usage.
+- [Plugin](#plugin)
+  - Information about the `plugin` module and usage.
 - [Configuration](#configuration)
+  - Information on configuring the plugin in Lavalink.
 - [Usage](#usage)
+  - Supported URL formats and search syntax.
+- [Building](#building)
+  - Instructions for building from source.
+- [Support](#support)
+  - Where to get help or report issues.
 
----
+## common
+This module provides the core HTTP client, metadata parsers, and dynamic client ID retrieval.
 
-## Plugin
-
-Drop the jar into your Lavalink `plugins/` folder.
-
-```
-lavalink/
-└── plugins/
-    └── soundy-plugin-1.1.0.jar
-```
-
-Then declare it in your `application.yml`:
-
-```yaml
-lavalink:
-  plugins:
-    - dependency: "com.waris4ly.soundy:plugin:1.1.0"
-      repository: "https://maven.lavalink.dev/releases"
-```
-
-Or if you are loading it manually from the folder, just add the config block:
-
-```yaml
-plugins:
-  soundy:
-    enabled: true
-```
-
----
-
-## Common
-
-The `common` module can be used standalone with any Lavaplayer setup outside of Lavalink.
+<details>
+<summary>Using in Gradle:</summary>
 
 ```kotlin
 repositories {
-    maven("https://maven.lavalink.dev/releases")
+  maven("https://maven.lavalink.dev/releases")
 }
 
 dependencies {
-    implementation("com.waris4ly.soundy:common:1.1.0")
+  // Replace VERSION with the current version from the Releases tab
+  implementation("com.waris4ly.soundy:common:VERSION")
 }
 ```
+
+</details>
+
+## source
+This module provides the source manager for use with Lavaplayer.
+
+<details>
+<summary>Using in Gradle:</summary>
+
+```kotlin
+repositories {
+  maven("https://maven.lavalink.dev/releases")
+}
+
+dependencies {
+  // Replace VERSION with the current version from the Releases tab
+  implementation("com.waris4ly.soundy:source:VERSION")
+}
+```
+
+</details>
 
 Example usage:
 
 ```java
-HttpClient http = HttpClient.newBuilder()
-        .followRedirects(HttpClient.Redirect.NORMAL)
-        .build();
-
-ClientIdProvider clientIdProvider = new ClientIdProvider(http);
-SoundCloudHttpClient scClient = new SoundCloudHttpClient(http, clientIdProvider);
-SoundCloudService service = new SoundCloudService(scClient);
-
-// register with lavaplayer
-AudioPlayerManager manager = new DefaultAudioPlayerManager();
-manager.registerSourceManager(new SoundySourceManager());
+AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
+playerManager.registerSourceManager(new SoundySourceManager());
 ```
 
----
+## plugin
+This module serves as the plugin for use with [Lavalink](https://github.com/lavalink-devs/Lavalink).
+
+To use this plugin with Lavalink, declare the dependency in your `application.yml`:
+
+<details>
+<summary>Using with Lavalink v4:</summary>
+
+```yaml
+lavalink:
+  plugins:
+    # Replace VERSION with the current version from the Releases tab
+    - dependency: "com.waris4ly.soundy:plugin:VERSION"
+      repository: "https://maven.lavalink.dev/releases"
+```
+
+</details>
+
+Alternatively, download the `soundy-plugin-x.x.x.jar` from the [Releases](https://github.com/lowkwrs/soundy-plugin/releases) page and place it into your `plugins` directory:
+
+```
+lavalink/
+├── Lavalink.jar
+├── application.yml
+└── plugins/
+    └── soundy-plugin-x.x.x.jar
+```
 
 ## Configuration
+To configure the plugin, add the `soundy` block to your `application.yml`:
 
 ```yaml
 plugins:
   soundy:
-    enabled: true  # set to false to disable the plugin without removing the jar
+    enabled: true # Set to false to disable the source without removing the jar
 ```
-
----
 
 ## Usage
 
-### Play by URL
+### Tracks
+Standard desktop and mobile URLs are supported:
+- `https://soundcloud.com/artist/track`
+- `https://m.soundcloud.com/artist/track`
 
-```
-https://soundcloud.com/alanwalker/faded-slushii-remix-1
-```
+### Playlists
+SoundCloud sets and playlists are supported:
+- `https://soundcloud.com/artist/sets/playlist`
 
-### Search
+SoundCloud returns only the first 5 tracks in initial responses. Soundy fetches the remaining tracks in batches of 50, supporting up to 500 tracks per playlist.
 
-```
-scsearch:alan walker faded
-```
+### Searching
+You can search SoundCloud using the `scsearch:` prefix:
+- `scsearch:song title`
 
-Returns up to 10 tracks as a search playlist.
+Returns up to 10 matching tracks formatted as a search playlist.
 
-### Playlist
-
-```
-https://soundcloud.com/someuser/sets/some-playlist
-```
-
----
-
-## Build from source
+## Building
+To build the project from source:
 
 ```bash
 ./gradlew build
 ```
 
-Output:
+The plugin jar will be generated at:
+```
+plugin/build/libs/soundy-plugin-x.x.x.jar
+```
 
+To run all tests including integration tests against live SoundCloud endpoints:
+```bash
+SOUNDY_IT=1 ./gradlew :source:test
 ```
-plugin/build/libs/soundy-plugin-1.1.0.jar
-```
+
+## Support
+If you encounter any bugs, have questions, or need assistance, please open an issue on GitHub.

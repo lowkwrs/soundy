@@ -7,8 +7,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "plugins.soundy")
 public class PluginConfig {
 
-    private boolean enabled = true;
+	private boolean enabled = true;
 
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
 }

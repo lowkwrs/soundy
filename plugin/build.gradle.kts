@@ -1,11 +1,11 @@
 plugins {
-    id("dev.arbjerg.lavalink.gradle-plugin") version "1.0.16"
+    id("dev.arbjerg.lavalink.gradle-plugin") version "1.1.2"
 }
 
 configurations.all {
     resolutionStrategy.eachDependency {
         if (requested.group == "com.sedmelluq" && requested.name == "lavaplayer") {
-            useTarget("dev.arbjerg:lavaplayer:2.2.6")
+            useTarget("dev.arbjerg:lavaplayer:2.2.7")
             because("Using lavalink-devs fork of lavaplayer")
         }
     }
@@ -14,8 +14,8 @@ configurations.all {
 dependencies {
     implementation(project(":source"))
     implementation(project(":common"))
-    compileOnly("dev.arbjerg:lavaplayer:2.2.6")
-    compileOnly("dev.arbjerg.lavalink:plugin-api:4.2.2")
+    compileOnly("dev.arbjerg:lavaplayer:2.2.7")
+    compileOnly("dev.arbjerg.lavalink:plugin-api:4.2.1")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
 

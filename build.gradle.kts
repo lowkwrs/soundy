@@ -1,17 +1,29 @@
 plugins {
     java
     `maven-publish`
-    id("dev.arbjerg.lavalink.gradle-plugin") version "1.0.16" apply false
+    id("dev.arbjerg.lavalink.gradle-plugin") version "1.1.2" apply false
+    id("com.diffplug.spotless") version "7.0.2"
 }
 
 allprojects {
     group = "com.waris4ly.soundy"
-    version = "1.1.0"
+    version = "1.0.4"
 
     repositories {
         mavenCentral()
         maven("https://maven.lavalink.dev/releases")
         maven("https://jitpack.io")
+    }
+
+    apply(plugin = "com.diffplug.spotless")
+    spotless {
+        java {
+            target("src/**/*.java")
+            removeUnusedImports()
+            eclipse()
+            trimTrailingWhitespace()
+            endWithNewline()
+        }
     }
 }
 
@@ -24,11 +36,10 @@ subprojects {
     }
 
     dependencies {
-        compileOnly("dev.arbjerg:lavaplayer:2.2.6")
+        compileOnly("dev.arbjerg:lavaplayer:2.2.7")
     }
 }
 
-// plugin module has its own publishing via lavalink gradle plugin
 configure(subprojects.filter { it.name != "plugin" }) {
     apply(plugin = "maven-publish")
 
@@ -36,7 +47,7 @@ configure(subprojects.filter { it.name != "plugin" }) {
         repositories {
             maven {
                 name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/waris4ly/soundy")
+                url = uri("https://maven.pkg.github.com/waris4ly/soundy-plugin")
                 credentials {
                     username = System.getenv("GITHUB_ACTOR")
                     password = System.getenv("GITHUB_TOKEN")

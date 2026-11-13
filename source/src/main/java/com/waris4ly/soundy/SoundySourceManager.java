@@ -12,139 +12,156 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SoundySourceManager implements AudioSourceManager {
 
-    private static final Pattern SOUNDCLOUD_URL = Pattern.compile(
-            "^https?://(?:www\\.)?soundcloud\\.com/.+");
-    private static final String SEARCH_PREFIX = "scsearch:";
+	private static final Logger log = LoggerFactory.getLogger(SoundySourceManager.class);
+	private static final Pattern SOUNDCLOUD_URL = Pattern.compile("^https?://(?:(?:www\\.|m\\.)?soundcloud\\.com)/.+");
+	private static final String SEARCH_PREFIX = "scsearch:";
 
-    private final SoundCloudService service;
-    private final HttpInterfaceManager httpInterfaceManager;
+	private final SoundCloudService service;
+	private final HttpInterfaceManager httpInterfaceManager;
+	private final ExecutorService prefetchExecutor;
 
-    public SoundySourceManager() {
-        ClientIdProvider clientIdProvider = new ClientIdProvider();
-        SoundCloudHttpClient soundCloudHttpClient = new SoundCloudHttpClient(clientIdProvider);
-        this.service = new SoundCloudService(soundCloudHttpClient);
-        this.httpInterfaceManager = HttpClientTools.createDefaultThreadLocalManager();
-    }
+	public SoundySourceManager() {
+		ClientIdProvider clientIdProvider = new ClientIdProvider();
+		SoundCloudHttpClient soundCloudHttpClient = new SoundCloudHttpClient(clientIdProvider);
+		this.service = new SoundCloudService(soundCloudHttpClient);
+		this.httpInterfaceManager = HttpClientTools.createDefaultThreadLocalManager();
+		this.prefetchExecutor = Executors.newCachedThreadPool(runnable -> {
+			Thread thread = new Thread(runnable, "soundy-prefetch");
+			thread.setDaemon(true);
+			return thread;
+		});
+	}
 
-    public SoundCloudService getService() {
-        return service;
-    }
+	public SoundCloudService getService() {
+		return service;
+	}
 
-    public HttpInterface getHttpInterface() {
-        return httpInterfaceManager.getInterface();
-    }
+	public HttpInterface getHttpInterface() {
+		return httpInterfaceManager.getInterface();
+	}
 
-    @Override
-    public String getSourceName() {
-        return "soundcloud";
-    }
+	public ExecutorService getPrefetchExecutor() {
+		return prefetchExecutor;
+	}
 
-    @Override
-    public AudioItem loadItem(AudioPlayerManager manager, AudioReference reference) {
-        String identifier = reference.identifier;
+	@Override
+	public String getSourceName() {
+		return "soundcloud";
+	}
 
-        if (identifier.startsWith(SEARCH_PREFIX)) {
-            return loadSearch(identifier.substring(SEARCH_PREFIX.length()).trim());
-        }
+	@Override
+	public AudioItem loadItem(AudioPlayerManager manager, AudioReference reference) {
+		String identifier = reference.identifier;
 
-        if (SOUNDCLOUD_URL.matcher(identifier).matches()) {
-            return loadFromUrl(identifier);
-        }
+		if (identifier.startsWith(SEARCH_PREFIX)) {
+			return loadSearch(identifier.substring(SEARCH_PREFIX.length()).trim());
+		}
 
-        return null;
-    }
+		if (SOUNDCLOUD_URL.matcher(identifier).matches()) {
+			return loadFromUrl(identifier);
+		}
 
-    private AudioItem loadFromUrl(String url) {
-        try (HttpInterface http = getHttpInterface()) {
-            Object resolved = service.resolveUrl(http, url);
+		return null;
+	}
 
-            if (resolved instanceof TrackData track) {
-                return buildTrack(track);
-            }
+	private AudioItem loadFromUrl(String url) {
+		if (url.contains("://m.soundcloud.com/")) {
+			url = url.replace("://m.soundcloud.com/", "://soundcloud.com/");
+		}
+		try (HttpInterface http = getHttpInterface()) {
+			Object resolved = service.resolveUrl(http, url);
 
-            if (resolved instanceof PlaylistData playlist) {
-                List<AudioTrack> tracks = playlist.getTracks().stream()
-                        .filter(TrackData::isStreamable)
-                        .map(this::buildTrack)
-                        .collect(Collectors.toList());
-                return tracks.isEmpty() ? AudioReference.NO_TRACK
-                        : new BasicAudioPlaylist(playlist.getTitle(), tracks, null, false);
-            }
+			if (resolved instanceof TrackData track) {
+				return buildTrack(track);
+			}
 
-            return AudioReference.NO_TRACK;
-        } catch (IOException e) {
-            throw new FriendlyException("Failed to load SoundCloud URL: " + url,
-                    FriendlyException.Severity.SUSPICIOUS, e);
-        }
-    }
+			if (resolved instanceof PlaylistData playlist) {
+				List<AudioTrack> tracks = playlist.getTracks().stream().filter(TrackData::isStreamable)
+						.map(this::buildTrack).collect(Collectors.toList());
+				return tracks.isEmpty()
+						? AudioReference.NO_TRACK
+						: new BasicAudioPlaylist(playlist.getTitle(), tracks, null, false);
+			}
 
-    private AudioItem loadSearch(String query) {
-        if (query.isEmpty()) {
-            return AudioReference.NO_TRACK;
-        }
-        try (HttpInterface http = getHttpInterface()) {
-            List<TrackData> results = service.search(http, query);
-            if (results.isEmpty()) {
-                return AudioReference.NO_TRACK;
-            }
-            List<AudioTrack> tracks = results.stream()
-                    .filter(TrackData::isStreamable)
-                    .map(this::buildTrack)
-                    .collect(Collectors.toList());
-            return tracks.isEmpty() ? AudioReference.NO_TRACK
-                    : new BasicAudioPlaylist("Search results for: " + query, tracks, null, true);
-        } catch (IOException e) {
-            throw new FriendlyException("Search failed for: " + query,
-                    FriendlyException.Severity.SUSPICIOUS, e);
-        }
-    }
+			return AudioReference.NO_TRACK;
+		} catch (IOException e) {
+			if (e.getMessage() != null && e.getMessage().contains("404")) {
+				return AudioReference.NO_TRACK;
+			}
+			throw new FriendlyException("Failed to load SoundCloud URL: " + url, FriendlyException.Severity.SUSPICIOUS,
+					e);
+		}
+	}
 
-    private AudioTrack buildTrack(TrackData data) {
-        SoundyAudioTrackInfo info = new SoundyAudioTrackInfo(
-                data.getTitle(),
-                data.getUsername(),
-                data.getDuration(),
-                String.valueOf(data.getId()),
-                data.getPermalinkUrl(),
-                data.getId(),
-                data.getArtworkUrl()
-        );
-        return new SoundyAudioTrack(info, this);
-    }
+	private AudioItem loadSearch(String query) {
+		if (query.isEmpty()) {
+			return AudioReference.NO_TRACK;
+		}
+		try (HttpInterface http = getHttpInterface()) {
+			List<TrackData> results = service.search(http, query);
+			if (results.isEmpty()) {
+				return AudioReference.NO_TRACK;
+			}
+			List<AudioTrack> tracks = results.stream().filter(TrackData::isStreamable).map(this::buildTrack)
+					.collect(Collectors.toList());
+			return tracks.isEmpty()
+					? AudioReference.NO_TRACK
+					: new BasicAudioPlaylist("Search results for: " + query, tracks, null, true);
+		} catch (IOException e) {
+			throw new FriendlyException("Search failed for: " + query, FriendlyException.Severity.SUSPICIOUS, e);
+		}
+	}
 
-    @Override
-    public boolean isTrackEncodable(AudioTrack track) {
-        return true;
-    }
+	private AudioTrack buildTrack(TrackData data) {
+		SoundyAudioTrackInfo info = new SoundyAudioTrackInfo(data.getTitle(), data.getUsername(), data.getDuration(),
+				String.valueOf(data.getId()), data.getPermalinkUrl(), data.getId(), data.getArtworkUrl());
+		return new SoundyAudioTrack(info, this);
+	}
 
-    @Override
-    public void encodeTrack(AudioTrack track, DataOutput output) throws IOException {
-        SoundyAudioTrackInfo info = (SoundyAudioTrackInfo) track.getInfo();
-        output.writeLong(info.getTrackId());
-    }
+	@Override
+	public boolean isTrackEncodable(AudioTrack track) {
+		return true;
+	}
 
-    @Override
-    public AudioTrack decodeTrack(AudioTrackInfo info, DataInput input) throws IOException {
-        long trackId = input.readLong();
-        SoundyAudioTrackInfo soundyInfo = new SoundyAudioTrackInfo(
-                info.title, info.author, info.length, info.identifier, info.uri,
-                trackId, info.artworkUrl);
-        return new SoundyAudioTrack(soundyInfo, this);
-    }
+	@Override
+	public void encodeTrack(AudioTrack track, DataOutput output) throws IOException {
+		SoundyAudioTrackInfo info = (SoundyAudioTrackInfo) track.getInfo();
+		output.writeLong(info.getTrackId());
+	}
 
-    @Override
-    public void shutdown() {
-        try {
-            httpInterfaceManager.close();
-        } catch (Exception ignored) {}
-    }
+	@Override
+	public AudioTrack decodeTrack(AudioTrackInfo info, DataInput input) throws IOException {
+		long trackId = input.readLong();
+		SoundyAudioTrackInfo soundyInfo = new SoundyAudioTrackInfo(info.title, info.author, info.length,
+				info.identifier, info.uri, trackId, info.artworkUrl);
+		return new SoundyAudioTrack(soundyInfo, this);
+	}
+
+	@Override
+	public void shutdown() {
+		try {
+			prefetchExecutor.shutdownNow();
+		} catch (Exception e) {
+			log.debug("Error shutting down prefetch executor", e);
+		}
+		try {
+			httpInterfaceManager.close();
+		} catch (Exception e) {
+			log.debug("Error closing HTTP interface manager", e);
+		}
+	}
 }
