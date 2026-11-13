@@ -35,4 +35,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: plugin/build/libs/soundy-plugin-*.jar
+          generate_release_notes: true
+          files: |
+            common/build/libs/soundy-common-*.jar
+            source/build/libs/soundy-source-*.jar
+            plugin/build/libs/soundy-plugin-*.jar

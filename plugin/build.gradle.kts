@@ -11,6 +11,10 @@ configurations.all {
     }
 }
 
+base {
+    archivesName.set("soundy-plugin")
+}
+
 dependencies {
     implementation(project(":source"))
     implementation(project(":common"))
@@ -21,4 +25,8 @@ dependencies {
 
 tasks.jar {
     archiveBaseName.set("soundy-plugin")
+}
+
+tasks.named<Jar>("sourcesJar") {
+    dependsOn(tasks.named("generatePluginProperties"))
 }

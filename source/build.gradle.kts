@@ -1,3 +1,7 @@
+base {
+    archivesName.set("soundy-source")
+}
+
 dependencies {
     implementation(project(":common"))
     compileOnly("dev.arbjerg:lavaplayer:2.2.7")
